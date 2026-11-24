@@ -329,3 +329,30 @@ body:has(.app.std) { background: var(--bg); }
 .pick { max-height: 55vh; overflow-y: auto; }
 .std .row .sub.due { color: var(--due); }
 .modal.std { background: rgb(0 0 0 / .45); padding-top: 16px; }
+.std .pick .row .sub { white-space: normal; }
+.std .seg button[aria-pressed="true"] { background: var(--surface); box-shadow: 0 1px 3px rgb(0 0 0 / .14); }
+.toast { max-width: 90vw; text-align: center; }
+.std .row.grey .name, .std .row.grey .end { color: var(--muted); } .std .row.grey .cover { opacity: .5; }
+.owe { margin: 8px 0 0; font-size: 20px; font-weight: 700; }
+
+/* who-owes-whom map */
+.omap { width: 100%; height: auto; background: var(--surface); border-radius: 12px; }
+.omap path { fill: none; stroke: var(--muted); opacity: .55; }
+.omap marker path { fill: var(--muted); stroke: none; opacity: 1; }
+.omap .mine path { stroke: var(--accent); opacity: 1; }
+.omap #ahm path { fill: var(--accent); }
+.omap text { font-size: 12px; font-weight: 600; text-anchor: middle; fill: var(--fg); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; }
+.omap .node circle { fill: var(--fill); stroke: var(--line); }
+.omap .node.me circle { fill: var(--accent); stroke: none; }
+.omap .node text { font-size: 15px; stroke: none; }
+.omap .node.me text:not(.nm) { fill: var(--accent-fg); }
+.omap .node .nm { font-size: 12px; font-weight: 500; fill: var(--muted); }
+.omap .node[data-person]:not([data-person=""]) { cursor: pointer; }
+.cap { margin: -4px 0 0; text-align: center; font-size: 12px; }
+.omap .node .nm { stroke: var(--surface); stroke-width: 4px; }
+.omap path { stroke-width: 1.8; }
+.avatar.sq { border-radius: 10px; }
+.std .hlink.wide, .std button.hlink { align-self: flex-start; margin: -4px 0 0 4px; padding: 8px 12px; }
+
+.std .btn.reset { height: 44px; padding: 0 14px; font-size: 15px; }
+.pick > .row { flex-shrink: 0; }
