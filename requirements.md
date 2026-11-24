@@ -1,6 +1,7 @@
 # Bookstock requirements
 
-Stage: clickable mock only (`index.html`, data in memory). No backend yet.
+Stage: clickable mock only (`index.html`, data in memory, starts empty). No backend yet.
+Live at https://asrajavel.github.io/book-stock/ (GitHub Pages from main).
 Separate from the Book Distribution app for now.
 
 ## Problem
