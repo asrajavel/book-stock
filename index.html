@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bookstock</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app std">
+  <div id="view"></div>
+  <div class="bottom">
+    <div class="bar" id="bar" hidden></div>
+    <nav class="tabs" style="--n:3">
+      <span class="ind"></span>
+      <button data-tab="me"><svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>Stock</button>
+      <button data-tab="people"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2.1.7 3.5 2.8 3.5 5.7"/></svg>People</button>
+      <button data-tab="history"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>History</button>
+    </nav>
+  </div>
+</div>
+<div class="toast" hidden></div>
+<script>
+// Mock only: everything lives in memory and resets on reload.
+const BOOKS = [
+  { id: 1, short: "Gita", lang: "English", price: 350, cover: "bhagavad-gita-as-it-is" },
+  { id: 2, short: "Gita", lang: "Tamil", price: 300, cover: "bhagavad-gita-as-it-is" },
+  { id: 3, short: "Chant and Be Happy", lang: "English", price: 60, cover: "chant-and-be-happy" },
+  { id: 4, short: "Beyond Birth and Death", lang: "English", price: 40, cover: "beyond-birth-and-death" },
+  { id: 5, short: "Krsna Book", lang: "English", price: 450, cover: "krsna-book" },
+  { id: 6, short: "Coming Back", lang: "English", price: 80, cover: "coming-back" },
+];
+const PEOPLE = ["Temple", "Madhava", "Govinda", "Radha", "Keshava"]; // index is the id; 0 is the Temple (no login)
+const TEMPLE = 0;
+// kind: lend (from lends to), return (from gives books back to), pay (from pays to for books, no stock moves),
+//       add (to's own books, owed to nobody), out (from's books leave: distributed, gifted, lost)
+let entries = [
+  { kind: "lend", from: 0, to: 1, date: "2026-11-02", lines: { 1: 20, 2: 10, 3: 30, 5: 5 } },
+  { kind: "add", to: 2, date: "2026-11-03", lines: { 4: 20, 6: 10 } },
+  { kind: "lend", from: 1, to: 2, date: "2026-11-05", lines: { 1: 5, 3: 10 } },
+  { kind: "lend", from: 1, to: 3, date: "2026-11-06", lines: { 1: 4, 5: 2 } },
+  { kind: "out", from: 2, date: "2026-11-09", lines: { 1: 3, 3: 6, 4: 5 } },
+  { kind: "pay", from: 2, to: 1, date: "2026-11-10", lines: { 1: 2 } },
+  { kind: "return", from: 3, to: 1, date: "2026-11-12", lines: { 5: 1 } },
+  { kind: "lend", from: 2, to: 4, date: "2026-11-14", lines: { 4: 5 } },
+  { kind: "pay", from: 1, to: 0, date: "2026-11-15", lines: { 3: 10 } },
+];
+let me = 1, tab = "me", person = null;
+
+const $ = s => document.querySelector(s);
+const rs = n => "₹" + n.toLocaleString("en-IN");
+const day = d => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+const today = () => new Date().toISOString().slice(0, 10);
+const B = id => BOOKS.find(b => b.id == id);
+const pos = o => Object.entries(o).filter(([, n]) => n > 0);
+const count = o => pos(o).reduce((t, [, n]) => t + n, 0);
+const value = o => pos(o).reduce((t, [id, n]) => t + n * B(id).price, 0); // ponytail: today's price; real app copies the price on the lend day
+const add = (acc, lines, sign) => { for (const [id, n] of Object.entries(lines)) acc[id] = (acc[id] || 0) + sign * n; return acc; };
+const books = o => pos(o).map(([id, n]) => `${n} ${B(id).short}${B(id).lang == "English" ? "" : " " + B(id).lang}`).join(", ");
+
+// Books b still holds from a: lent by a, minus returned or paid for by b. Each direction is separate.
+const loan = (a, b) => entries.reduce((acc, e) =>
+  e.kind == "lend" && e.from == a && e.to == b ? add(acc, e.lines, 1)
+  : (e.kind == "return" || e.kind == "pay") && e.from == b && e.to == a ? add(acc, e.lines, -1) : acc, {});
+// Books in hand: everything that came to p minus everything that left p. Payments move no books.
+const inHand = p => p == TEMPLE ? Object.fromEntries(BOOKS.map(b => [b.id, 999])) : entries.reduce((acc, e) => {
+  if (e.kind == "pay") return acc;
+  if (e.to == p) add(acc, e.lines, 1);
+  if (e.from == p) add(acc, e.lines, -1);
+  return acc;
+}, {});
+const min = (a, b) => Object.fromEntries(pos(a).map(([id, n]) => [id, Math.min(n, b[id] || 0)]));
+const others = () => PEOPLE.map((_, i) => i).filter(i => i != me);
+
+const bookRow = (id, n) => `<li class="row"><img class="cover" src="covers/${B(id).cover}.webp" alt="">
+  <div class="info"><div class="name">${B(id).short} <span class="lang">${B(id).lang}</span></div><div class="sub num">${rs(n * B(id).price)}</div></div>
+  <div class="end"><strong class="num">${n}</strong></div></li>`;
+const bookList = o => `<ul class="list">${pos(o).map(([id, n]) => bookRow(id, n)).join("") || `<li class="empty">None</li>`}</ul>`;
+
+function phrase(e) {
+  const P = i => PEOPLE[i];
+  const amt = rs(value(e.lines));
+  return {
+    lend: e.from == me ? `Gave ${P(e.to)}` : e.to == me ? `Took from ${P(e.from)}` : `${P(e.from)} gave ${P(e.to)}`,
+    return: e.from == me ? `Returned to ${P(e.to)}` : `${P(e.from)} returned`,
+    pay: e.from == me ? `Paid ${P(e.to)} ${amt}` : `${P(e.from)} paid ${amt}`,
+    add: "Own books added",
+    out: "Books gone",
+  }[e.kind];
+}
+const historyList = list => `<ul class="list">${list.slice().reverse().map(e => `<li class="row"><div class="info">
+  <div class="name">${day(e.date)} · ${phrase(e)}</div><div class="sub">${books(e.lines)}</div></div></li>`).join("") || `<li class="empty">Nothing yet</li>`}</ul>`;
+
+function owes(p) {
+  const mine = loan(p, me), theirs = loan(me, p), s = [];
+  if (count(mine)) s.push(`<span class="due">You have ${count(mine)} · ${rs(value(mine))}</span>`);
+  if (count(theirs)) s.push(`Has ${count(theirs)} of yours · ${rs(value(theirs))}`);
+  return s.join("<br>") || "Settled";
+}
+
+const VIEWS = {
+  me() {
+    const h = inHand(me);
+    const iOwe = others().reduce((t, p) => t + value(loan(p, me)), 0);
+    const owed = others().reduce((t, p) => t + value(loan(me, p)), 0);
+    return {
+      html: `<div class="top"><h1>My stock</h1><button class="round" data-act="who" aria-label="Switch person (mock)">${PEOPLE[me][0]}</button></div>
+        <div class="two"><button class="tile" data-tab="people"><span class="muted">I owe</span><strong class="num due">${rs(iOwe)}</strong></button>
+        <button class="tile" data-tab="people"><span class="muted">Owed to me</span><strong class="num">${rs(owed)}</strong></button></div>
+        <h2>In hand · ${count(h)} books · ${rs(value(h))}</h2>${bookList(h)}
+        <p class="empty">Mock as ${PEOPLE[me]} · resets on reload</p>`,
+      bar: `<button class="btn soft wide" data-act="out">Books gone</button><button class="btn wide" data-act="add">Add books</button>`,
+    };
+  },
+  people() {
+    return { html: `<div class="top"><h1>People</h1></div><ul class="list">${others().map(p => `<li><button class="row" data-person="${p}">
+      <span class="avatar">${PEOPLE[p][0]}</span><div class="info"><div class="name">${PEOPLE[p]}</div><div class="sub">${owes(p)}</div></div></button></li>`).join("")}</ul>` };
+  },
+  person() {
+    const P = PEOPLE[person], mine = loan(person, me), theirs = loan(me, person);
+    return {
+      html: `<div class="top"><button class="round" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>${P}</h1></div>
+        <h2>You have from ${P} · ${rs(value(mine))}</h2>${bookList(mine)}
+        ${count(mine) ? `<div class="acts"><button class="btn soft" data-act="return">Return</button><button class="btn soft" data-act="pay">Pay</button></div>` : ""}
+        <h2>${P} has from you · ${rs(value(theirs))}</h2>${bookList(theirs)}
+        ${count(theirs) ? `<div class="acts"><button class="btn soft" data-act="gotback">Got back</button><button class="btn soft" data-act="gotpaid">Got paid</button></div>` : ""}
+        <h2>History</h2>${historyList(entries.filter(e => (e.from == me && e.to == person) || (e.from == person && e.to == me)))}`,
+      bar: `<button class="btn ${person == TEMPLE ? "" : "soft "}wide" data-act="take">Take books</button>${person == TEMPLE ? "" : `<button class="btn wide" data-act="give">Give books</button>`}`,
+    };
+  },
+  history() {
+    return { html: `<div class="top"><h1>History</h1></div>${historyList(entries.filter(e => e.from == me || e.to == me))}` };
+  },
+};
+
+// Each action: picker title, which books and how many may be picked, and the entry it saves.
+const ACTS = {
+  give: () => [`Give ${PEOPLE[person]}`, inHand(me), { kind: "lend", from: me, to: person }],
+  take: () => [`Take from ${PEOPLE[person]}`, inHand(person), { kind: "lend", from: person, to: me }],
+  return: () => [`Return to ${PEOPLE[person]}`, min(loan(person, me), inHand(me)), { kind: "return", from: me, to: person }],
+  pay: () => [`Pay ${PEOPLE[person]}`, loan(person, me), { kind: "pay", from: me, to: person }],
+  gotback: () => [`${PEOPLE[person]} returned`, min(loan(me, person), inHand(person)), { kind: "return", from: person, to: me }],
+  gotpaid: () => [`${PEOPLE[person]} paid`, loan(me, person), { kind: "pay", from: person, to: me }],
+  add: () => ["Add own books", Object.fromEntries(BOOKS.map(b => [b.id, 999])), { kind: "add", to: me }],
+  out: () => ["Books gone (distributed, gifted, lost)", inHand(me), { kind: "out", from: me }],
+};
+
+function render() {
+  const v = VIEWS[person != null ? "person" : tab]();
+  $("#view").innerHTML = v.html;
+  $("#bar").hidden = !v.bar;
+  $("#bar").innerHTML = v.bar || "";
+  const i = ["me", "people", "history"].indexOf(tab);
+  document.querySelectorAll(".tabs button").forEach((b, j) => j == i ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+  $(".tabs").style.setProperty("--i", i);
+  scrollTo(0, 0);
+}
+
+function toast(t) {
+  const el = $(".toast");
+  el.textContent = t; el.hidden = false;
+  clearTimeout(toast.t); toast.t = setTimeout(() => el.hidden = true, 1800);
+}
+
+function modal(html) {
+  const m = document.createElement("div");
+  m.className = "modal std";
+  m.innerHTML = `<div class="card">${html}</div>`;
+  m.onclick = e => { if (e.target == m || e.target.closest("[data-x]")) m.remove(); };
+  document.body.append(m);
+  return m;
+}
+
+function picker(act) {
+  const [title, limits, entry] = ACTS[act](), q = {};
+  const items = pos(limits);
+  const m = modal(`<h3>${title}</h3>
+    <ul class="list pick">${items.map(([id, max]) => `<li class="row" data-id="${id}"><img class="cover" src="covers/${B(id).cover}.webp" alt="">
+      <div class="info"><div class="name">${B(id).short} <span class="lang">${B(id).lang}</span></div><div class="sub num">${max < 999 ? `of ${max} · ` : ""}${rs(B(id).price)}</div></div>
+      <div class="step"><button data-d="-1" disabled aria-label="Less">−</button><output>0</output><button class="plus" data-d="1" aria-label="More">+</button></div></li>`).join("") || `<li class="empty">No books</li>`}</ul>
+    <div class="muted" id="pv">0 books</div>
+    <div class="two"><button class="btn soft" data-x>Cancel</button><button class="btn" data-ok disabled>Save</button></div>`);
+  m.querySelector(".pick").onclick = e => {
+    const b = e.target.closest("[data-d]"); if (!b) return;
+    const row = b.closest("[data-id]"), id = row.dataset.id, max = limits[id];
+    q[id] = Math.max(0, Math.min(max, (q[id] || 0) + +b.dataset.d));
+    row.querySelector("output").textContent = q[id];
+    row.querySelector("[data-d='-1']").disabled = !q[id];
+    row.querySelector("[data-d='1']").disabled = q[id] >= max;
+    row.classList.toggle("on", q[id] > 0);
+    m.querySelector("#pv").textContent = `${count(q)} books · ${rs(value(q))}`;
+    m.querySelector("[data-ok]").disabled = !count(q);
+  };
+  m.querySelector("[data-ok]").onclick = () => {
+    entries.push({ ...entry, date: today(), lines: Object.fromEntries(pos(q)) });
+    m.remove(); render(); toast("Saved");
+  };
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-tab],[data-person],[data-back],[data-act]");
+  if (!t || t.closest(".modal")) return;
+  if (t.dataset.tab) { tab = t.dataset.tab; person = null; }
+  else if (t.dataset.person) person = +t.dataset.person;
+  else if (t.hasAttribute("data-back")) person = null;
+  else if (t.dataset.act == "who") {
+    const m = modal(`<h3>View as (mock)</h3><ul class="list">${PEOPLE.map((p, i) => i == TEMPLE ? "" : `<li><button class="row" data-who="${i}"><span class="avatar">${p[0]}</span><div class="info"><div class="name">${p}</div></div></button></li>`).join("")}</ul>`);
+    m.querySelector(".list").onclick = ev => { const w = ev.target.closest("[data-who]"); if (w) { me = +w.dataset.who; m.remove(); render(); } };
+    return;
+  } else return picker(t.dataset.act);
+  render();
+});
+render();
+</script>
+</body>
+</html>
