@@ -61,13 +61,13 @@ All entries: kind, from, to, date, books (title + language, count); Lend and Out
 
 ## Screens
 
-- **Stock**: To give back ₹, To get back ₹;
+- **Stock**: Need to pay ₹, Need to get ₹;
   **Books in hand** (one list per pile: Own, Temple's, Pannaga's…); **At Chaitanya Center** (my books there);
   **Cash in hand to pay others**: money from books sold that is still owed, one row per person (tap opens them).
   Money from own books isn't tracked. Bar: Sell books, Buy books.
 - **People**: a who-owes-whom map on top (everyone on a circle, arrow from payer to payee with ₹,
-  your arrows in blue; tap a person to open them), then each person with "You give back ₹ · N books", "You get back ₹ · N books", or All clear.
-- **Person**: "Give back to A · ₹" (with Return / Pay) and "Get back from A · ₹" (view only), each only when not empty; history (collapsed).
+  your arrows in blue; tap a person to open them), then each person with "You need to pay ₹ · N books", "You need to get ₹ · N books", or All clear.
+- **Person**: "Need to pay A · ₹" (with Return / Pay) and "Need to get from A · ₹" (view only), each only when not empty; history (collapsed).
   Bar: Give books, Take books (Temple: Take books).
 - **Pickers** for Give, Take and Sell books start with a Whose books switch (Own / Temple's / …).
 - **Chaitanya Center page**: Books here (by owner, mine first), history (collapsed). Bar: Take books, Put books. In People it is the last row (square icon); it is left off the map.

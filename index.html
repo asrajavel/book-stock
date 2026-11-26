@@ -177,8 +177,8 @@ function owes(p) {
     return [`${nb(count(all))} here`, count(mineHere) && `${count(mineHere)} yours`].filter(Boolean).join(" · ");
   }
   const mine = owedBy(p, me), theirs = owedBy(me, p), s = [];
-  if (count(mine)) s.push(`<span class="due">You give back ${rs(value(mine))} · ${nb(count(mine))}</span>`);
-  if (count(theirs)) s.push(`You get back ${rs(value(theirs))} · ${nb(count(theirs))}`);
+  if (count(mine)) s.push(`<span class="due">You need to pay ${rs(value(mine))} · ${nb(count(mine))}</span>`);
+  if (count(theirs)) s.push(`You need to get ${rs(value(theirs))} · ${nb(count(theirs))}`);
   return s.join("<br>") || "All clear";
 }
 
@@ -192,8 +192,8 @@ const VIEWS = {
     const owed = people().reduce((t, p) => t + value(owedBy(me, p)), 0);
     return {
       html: `<div class="top"><h1>My stock</h1><button class="btn soft reset" data-act="reset">Reset to 0</button><button class="round" data-act="who" aria-label="Switch person (mock)">${PEOPLE[me][0]}</button></div>
-        <div class="two"><button class="tile" data-tab="people"><span class="muted">To give back</span><strong class="num due">${rs(iOwe)}</strong></button>
-        <button class="tile" data-tab="people"><span class="muted">To get back</span><strong class="num">${rs(owed)}</strong></button></div>
+        <div class="two"><button class="tile" data-tab="people"><span class="muted">Need to pay</span><strong class="num due">${rs(iOwe)}</strong></button>
+        <button class="tile" data-tab="people"><span class="muted">Need to get</span><strong class="num">${rs(owed)}</strong></button></div>
         <p class="owe">Books in hand · ${mine.reduce((t, [, o]) => t + count(o), 0)}</p>
         ${mine.map(([src, o]) => `<h2>${pileName(me, +src)} · ${nb(count(o))}</h2>${bookList(o)}`).join("") || `<p class="empty">None</p>`}
         ${count(atCenter) ? `<p class="owe">At Chaitanya Center · ${count(atCenter)}</p>${bookList(atCenter)}` : ""}
@@ -211,8 +211,8 @@ const VIEWS = {
     const P = PEOPLE[person], mine = owedBy(person, me), theirs = owedBy(me, person);
     return {
       html: `<div class="top"><button class="round" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>${P}</h1></div>
-        ${count(mine) ? `<p class="owe due">Give back to ${P} · ${rs(value(mine))}</p>${loanGroups(me, person)}` : ""}
-        ${count(theirs) ? `<p class="owe">Get back from ${P} · ${rs(value(theirs))}</p>${loanGroups(person, me)}` : ""}
+        ${count(mine) ? `<p class="owe due">Need to pay ${P} · ${rs(value(mine))}</p>${loanGroups(me, person)}` : ""}
+        ${count(theirs) ? `<p class="owe">Need to get from ${P} · ${rs(value(theirs))}</p>${loanGroups(person, me)}` : ""}
         ${count(mine) || count(theirs) ? "" : `<p class="empty">All clear</p>`}
         ${hist(entries.filter(e => (e.from == me && e.to == person) || (e.from == person && e.to == me)
           || (e.kind == "lend" || e.kind == "out") && ((e.src == me && (e.from == person || e.to == person)) || (e.src == person && (e.from == me || e.to == me)))))}`,
