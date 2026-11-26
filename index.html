@@ -142,6 +142,8 @@ function phrase(e) {
     out: e.from == me ? "Sold" + whose : `${P(e.from)} sold yours`,
   }[e.kind];
 }
+// Collapsed history for Person and Center pages (the History tab shows it open)
+const hist = list => `<details class="hist"><summary><h2>History · ${list.length}</h2></summary>${historyList(list)}</details>`;
 const historyList = list => `<ul class="list">${list.slice().reverse().map(e => `<li class="row"><div class="info">
   <div class="name">${day(e.date)} · ${phrase(e)}</div><div class="sub">${books(e.lines)}</div></div></li>`).join("") || `<li class="empty">Nothing yet</li>`}</ul>`;
 
@@ -164,7 +166,7 @@ function owesMap() {
   const nodes = ids.map(i => [PEOPLE[i], i]).map(([n, i]) => `<g class="node${i == me ? " me" : ""}" ${i == me ? "" : `data-person="${i}" role="button"`} aria-label="${n}">
     <circle cx="${at[i][0]}" cy="${at[i][1]}" r="${r}"/><text x="${at[i][0]}" y="${at[i][1]}" dy="5">${n[0]}</text>
     <text class="nm" x="${at[i][0]}" y="${at[i][1] + r + 14}">${n}</text></g>`).join("");
-  return `<svg class="omap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Who owes whom">
+  return `<svg class="omap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Who pays whom">
     <defs>${["", "m"].map(k => `<marker id="ah${k}" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto-start-reverse"><path d="M0,0L10,5L0,10z"/></marker>`).join("")}</defs>
     ${lines}${nodes}</svg><p class="muted cap">Arrow: who pays whom</p>`;
 }
@@ -175,9 +177,9 @@ function owes(p) {
     return [`${nb(count(all))} here`, count(mineHere) && `${count(mineHere)} yours`].filter(Boolean).join(" · ");
   }
   const mine = owedBy(p, me), theirs = owedBy(me, p), s = [];
-  if (count(mine)) s.push(`<span class="due">You owe ${rs(value(mine))} · ${nb(count(mine))}</span>`);
-  if (count(theirs)) s.push(`Owes you ${rs(value(theirs))} · ${nb(count(theirs))}`);
-  return s.join("<br>") || "Settled";
+  if (count(mine)) s.push(`<span class="due">You give back ${rs(value(mine))} · ${nb(count(mine))}</span>`);
+  if (count(theirs)) s.push(`You get back ${rs(value(theirs))} · ${nb(count(theirs))}`);
+  return s.join("<br>") || "All clear";
 }
 
 const VIEWS = {
@@ -190,12 +192,12 @@ const VIEWS = {
     const owed = people().reduce((t, p) => t + value(owedBy(me, p)), 0);
     return {
       html: `<div class="top"><h1>My stock</h1><button class="btn soft reset" data-act="reset">Reset to 0</button><button class="round" data-act="who" aria-label="Switch person (mock)">${PEOPLE[me][0]}</button></div>
-        <div class="two"><button class="tile" data-tab="people"><span class="muted">I owe</span><strong class="num due">${rs(iOwe)}</strong></button>
-        <button class="tile" data-tab="people"><span class="muted">Owed to me</span><strong class="num">${rs(owed)}</strong></button></div>
+        <div class="two"><button class="tile" data-tab="people"><span class="muted">To give back</span><strong class="num due">${rs(iOwe)}</strong></button>
+        <button class="tile" data-tab="people"><span class="muted">To get back</span><strong class="num">${rs(owed)}</strong></button></div>
         <p class="owe">Books in hand · ${mine.reduce((t, [, o]) => t + count(o), 0)}</p>
         ${mine.map(([src, o]) => `<h2>${pileName(me, +src)} · ${nb(count(o))}</h2>${bookList(o)}`).join("") || `<p class="empty">None</p>`}
         ${count(atCenter) ? `<p class="owe">At Chaitanya Center · ${count(atCenter)}</p>${bookList(atCenter)}` : ""}
-        <p class="owe">Cash to pay others · ${rs(cash.reduce((t, [, o]) => t + value(o), 0))}</p>
+        <p class="owe">Cash in hand to pay others ·${rs(cash.reduce((t, [, o]) => t + value(o), 0))}</p>
         <ul class="list">${cash.map(([p, o]) => `<li><button class="row" data-person="${p}"><span class="avatar">${PEOPLE[p][0]}</span>
           <div class="info"><div class="name">For ${PEOPLE[p]}</div><div class="sub">${books(o)}</div></div><div class="end"><strong class="num">${rs(value(o))}</strong></div></button></li>`).join("") || `<li class="empty">None</li>`}</ul>`,
       bar: `<button class="btn soft wide" data-act="out">Sell books</button><button class="btn wide" data-act="add">Buy books</button>`,
@@ -209,12 +211,12 @@ const VIEWS = {
     const P = PEOPLE[person], mine = owedBy(person, me), theirs = owedBy(me, person);
     return {
       html: `<div class="top"><button class="round" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>${P}</h1></div>
-        ${count(mine) ? `<p class="owe due">You owe ${P} ${rs(value(mine))}</p>${loanGroups(me, person)}` : ""}
-        ${count(theirs) ? `<p class="owe">${P} owes you ${rs(value(theirs))}</p>${loanGroups(person, me)}` : ""}
-        ${count(mine) || count(theirs) ? "" : `<p class="empty">Settled</p>`}
-        <h2>History</h2>${historyList(entries.filter(e => (e.from == me && e.to == person) || (e.from == person && e.to == me)
+        ${count(mine) ? `<p class="owe due">Give back to ${P} · ${rs(value(mine))}</p>${loanGroups(me, person)}` : ""}
+        ${count(theirs) ? `<p class="owe">Get back from ${P} · ${rs(value(theirs))}</p>${loanGroups(person, me)}` : ""}
+        ${count(mine) || count(theirs) ? "" : `<p class="empty">All clear</p>`}
+        ${hist(entries.filter(e => (e.from == me && e.to == person) || (e.from == person && e.to == me)
           || (e.kind == "lend" || e.kind == "out") && ((e.src == me && (e.from == person || e.to == person)) || (e.src == person && (e.from == me || e.to == me)))))}`,
-      bar: person == TEMPLE ? `<button class="btn wide" data-act="take">Take books</button>` : `<button class="btn wide" data-act="give">Give books</button>`,
+      bar: person == TEMPLE ? `<button class="btn wide" data-act="take">Take books</button>` : `<button class="btn soft wide" data-act="take">Take books</button><button class="btn wide" data-act="give">Give books</button>`,
     };
   },
   center() {
@@ -223,7 +225,7 @@ const VIEWS = {
       html: `<div class="top"><button class="round" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>Chaitanya Center</h1></div>
         <p class="owe">Books here · ${here.reduce((t, [, o]) => t + count(o), 0)}</p>
         ${here.map(([src, o]) => `<h2>${src == me ? "Yours" : PEOPLE[src] + "'s"} · ${count(o)}</h2>${bookList(o)}`).join("") || `<p class="empty">None</p>`}
-        <h2>History</h2>${historyList(entries.filter(e => e.from == CENTER || e.to == CENTER))}`,
+        ${hist(entries.filter(e => e.from == CENTER || e.to == CENTER))}`,
       bar: `<button class="btn soft wide" data-act="take">Take books</button><button class="btn wide" data-act="give">Put books</button>`,
     };
   },
@@ -311,7 +313,8 @@ function picker(act) {
     const e = { ...entry, ...(opt.src != null && { src: opt.src }), date: today(), lines: Object.fromEntries(pos(q)) };
     if (e.kind == "lend" && e.src == e.to) { e.kind = "return"; delete e.src; } // giving someone their own books back is a return
     entries.push(e);
-    m.remove(); render(); toast(`${phrase(e)}: ${books(e.lines)}`);
+    const other = e.from == me ? e.to : e.from; // the side that didn't record gets a push (real app)
+    m.remove(); render(); toast(`${phrase(e)}: ${books(e.lines)}${other != null && other != TEMPLE && other != CENTER ? ` · ${PEOPLE[other]} notified` : ""}`);
   };
 }
 

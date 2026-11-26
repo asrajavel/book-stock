@@ -45,9 +45,9 @@ All entries: kind, from, to, date, books (title + language, count); Lend and Out
 - Sold or lent-on books can't be returned, only paid for (or returned by whoever has them now).
 - A pile below zero (e.g. after an edit) shows in red as "Missing an entry"; the holder fixes it.
 - Everyone can see everyone's stock, loans and history (volunteers are trusted).
-- **Only the giver records**: whoever hands over books or money enters it (Give, Pass, Return, Pay, Put at Center).
-  The receiver records nothing; they just see it. Exceptions, since nobody can give for them:
-  books from the Temple and from the Chaitanya Center are recorded by whoever takes them.
+- **Either side records**: the giver (Give) or the receiver (Take); it counts at once.
+- **Notify the other side**: the person who didn't make the entry gets a push notification
+  ("Pannaga gave you 5 books", "Ravi took 5 of your books") and fixes it if wrong. Temple and Center: no one to notify.
 
 ## Calculations (per title and language)
 
@@ -61,23 +61,22 @@ All entries: kind, from, to, date, books (title + language, count); Lend and Out
 
 ## Screens
 
-- **Stock**: I owe ₹, owed to me ₹;
+- **Stock**: To give back ₹, To get back ₹;
   **Books in hand** (one list per pile: Own, Temple's, Pannaga's…); **At Chaitanya Center** (my books there);
-  **Cash to pay others**: money from books sold that is still owed, one row per person (tap opens them).
+  **Cash in hand to pay others**: money from books sold that is still owed, one row per person (tap opens them).
   Money from own books isn't tracked. Bar: Sell books, Buy books.
 - **People**: a who-owes-whom map on top (everyone on a circle, arrow from payer to payee with ₹,
-  your arrows in blue; tap a person to open them), then each person with "You owe ₹ · N books", "Owes you ₹ · N books", or Settled.
-- **Person**: "You owe A ₹" (with Return / Pay) and "A owes you ₹" (view only), each only when not empty; history.
-  Bar: Give books (Temple: Take books).
+  your arrows in blue; tap a person to open them), then each person with "You give back ₹ · N books", "You get back ₹ · N books", or All clear.
+- **Person**: "Give back to A · ₹" (with Return / Pay) and "Get back from A · ₹" (view only), each only when not empty; history (collapsed).
+  Bar: Give books, Take books (Temple: Take books).
 - **Pickers** for Give, Take and Sell books start with a Whose books switch (Own / Temple's / …).
-- **Chaitanya Center page**: Books here (by owner, mine first), history. Bar: Take books, Put books. In People it is the last row (square icon); it is left off the map.
+- **Chaitanya Center page**: Books here (by owner, mine first), history (collapsed). Bar: Take books, Put books. In People it is the last row (square icon); it is left off the map.
 - **History**: my entries, newest first; a give or distribute from someone else's pile says whose.
 
 ## Open points
 
 - Which loan a return or payment settles when the lender lent from several piles (mock: pile id order; better: oldest first).
 - Price: today's price (mock) or the price on the lend day (parked design).
-- Who may enter: either side, counts at once (parked design), or the other side confirms.
 - Link to the Book Distribution app: should its sales count as "Out" automatically?
 - Edit/delete entries, duplicate warning.
 - Selling at the Chaitanya Center (it would hold the sale cash for each owner until collected).

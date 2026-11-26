@@ -356,3 +356,8 @@ body:has(.app.std) { background: var(--bg); }
 
 .std .btn.reset { height: 44px; padding: 0 14px; font-size: 15px; }
 .pick > .row { flex-shrink: 0; }
+
+.hist > summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; }
+.hist > summary::-webkit-details-marker { display: none; }
+.hist > summary h2::after { content: " ▸"; }
+.hist[open] > summary h2::after { content: " ▾"; }
