@@ -354,7 +354,6 @@ body:has(.app.std) { background: var(--bg); }
 .avatar.sq { border-radius: 10px; }
 .std .hlink.wide, .std button.hlink { align-self: flex-start; margin: -4px 0 0 4px; padding: 8px 12px; }
 
-.std .btn.reset { height: 44px; padding: 0 14px; font-size: 15px; }
 .pick > .row { flex-shrink: 0; }
 
 .hist > summary { list-style: none; cursor: pointer; min-height: 44px; display: flex; align-items: center; }

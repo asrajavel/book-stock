@@ -202,7 +202,7 @@ const VIEWS = {
     const iOwe = people().reduce((t, p) => t + value(owedBy(p, me)), 0);
     const owed = people().reduce((t, p) => t + value(owedBy(me, p)), 0);
     return {
-      html: `<div class="top"><h1>My stock</h1><button class="btn soft reset" data-act="reset">Reset to 0</button><button class="round" data-act="who" aria-label="Switch person (mock)">${PEOPLE[me][0]}</button></div>
+      html: `<div class="top"><h1>My stock</h1><button class="round" data-act="who" aria-label="Switch person (mock)">${PEOPLE[me][0]}</button></div>
         <div class="two"><button class="tile" data-tab="people"><span class="muted">Need to pay</span><strong class="num due">${rs(iOwe)}</strong></button>
         <button class="tile" data-tab="people"><span class="muted">Need to get</span><strong class="num">${rs(owed)}</strong></button></div>
         ${stockHtml(me)}`,
@@ -346,8 +346,7 @@ document.addEventListener("click", e => {
     const m = modal(`<h3>View as (mock)</h3><ul class="list">${PEOPLE.map((p, i) => i == TEMPLE || i == CENTER ? "" : `<li><button class="row" data-who="${i}"><span class="avatar">${p[0]}</span><div class="info"><div class="name">${p}</div></div></button></li>`).join("")}</ul>`);
     m.querySelector(".list").onclick = ev => { const w = ev.target.closest("[data-who]"); if (w) { me = +w.dataset.who; m.remove(); render(); } };
     return;
-  } else if (t.dataset.act == "reset") entries.length = 0; // demo: start from nothing
-  else return picker(t.dataset.act);
+  } else return picker(t.dataset.act);
   render();
 });
 render();
