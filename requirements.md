@@ -45,7 +45,7 @@ All entries: kind, from, to, date, books (title + language, count); Lend and Out
 - Sold or lent-on books can't be returned, only paid for (or returned by whoever has them now).
 - A pile below zero (e.g. after an edit) shows in red as "Missing an entry"; the holder fixes it.
 - Everyone can see everyone's stock, loans and history (volunteers are trusted).
-- **Either side records**: the giver (Give) or the receiver (Take); it counts at once.
+- **Either side records**: the giver (Give, Return, Pay) or the receiver (Take, Take back, Collect cash); it counts at once.
 - **Notify the other side**: the person who didn't make the entry gets a push notification
   ("Pannaga gave you 5 books", "Ravi took 5 of your books") and fixes it if wrong. Temple and Center: no one to notify.
 
@@ -57,7 +57,7 @@ All entries: kind, from, to, date, books (title + language, count); Lend and Out
 - Each direction is separate; A owing B and B owing A never cancel.
 - Amount owed = value of books still owed.
 - The person page splits owed books into groups, still held (Return), sold (incl. gifted, lost), with
-  the cash to pay or collect (Pay), and with others (grey, no button). Buttons only on the holder's side.
+  the cash to pay or collect (Pay), and with others (grey, no button). Holder sees Return / Pay; lender sees Take back / Collect cash.
 
 ## Screens
 
@@ -67,8 +67,10 @@ All entries: kind, from, to, date, books (title + language, count); Lend and Out
   Money from own books isn't tracked. Bar: Sell books, Buy books.
 - **People**: a who-owes-whom map on top (everyone on a circle, arrow from payer to payee with ₹,
   your arrows in blue; tap a person to open them), then each person with "You need to pay ₹ · N books", "You need to get ₹ · N books", or All clear.
-- **Person**: "Need to pay A · ₹" (with Return / Pay) and "Need to get from A · ₹" (view only), each only when not empty; history (collapsed).
-  Bar: Give books, Take books (Temple: Take books).
+- **Person** (volunteer): two tabs. **Between us**: "Need to pay A · ₹" and "Need to get from A · ₹", each only when not empty,
+  buttons under each group; history (collapsed); no bar. **A's stock**: same sections as my Stock (no totals). Bar: Take books, Give books.
+  Opens on Between us, or on A's stock when nothing is pending.
+- **Temple page**: "Need to pay Temple · ₹" (Return / Pay), history (collapsed). Bar: Take books.
 - **Pickers** for Give, Take and Sell books start with a Whose books switch (Own / Temple's / …).
 - **Chaitanya Center page**: Books here (by owner, mine first), history (collapsed). Bar: Take books, Put books. In People it is the last row (square icon); it is left off the map.
 - **History**: my entries, newest first; a give or distribute from someone else's pile says whose.

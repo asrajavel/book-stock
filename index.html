@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>Bookstock</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<link rel="stylesheet" href="style.css?v=2">
+<link rel="stylesheet" href="style.css?v=3">
 </head>
 <body>
 <div class="app std">
@@ -35,7 +35,7 @@ const TEMPLE = 0, CENTER = 5; // the Center is a shelf: it holds books for their
 // kind: lend (from gives to, out of from's pile src; from a volunteer's pile it is a pass: the new holder owes that owner),
 //       return (books back), pay (from pays to for sold books), add (to's own books), out (books from pile src leave: distributed, gifted, lost)
 let entries = []; // starts empty: the demo is played from zero
-let me = 1, tab = "me", person = null;
+let me = 1, tab = "me", person = null, ptab = "between";
 
 const $ = s => document.querySelector(s);
 const rs = n => "₹" + n.toLocaleString("en-IN");
@@ -97,8 +97,8 @@ function whereNow(id, n, holder, lender) {
 const heldOf = (holder, lender) => Object.fromEntries(pos(owedBy(lender, holder)).map(([id, n]) => [id, whereNow(id, n, holder, lender).held]));
 // Owed books that were sold: only these can be paid for (lent-on ones are paid once that person pays).
 const soldOf = (holder, lender) => Object.fromEntries(pos(owedBy(lender, holder)).map(([id, n]) => [id, whereNow(id, n, holder, lender).sold]));
-// Owed books in three groups: still held (return), sold (pay), with others (no action). Only the giver records, so
-// buttons show only on my side (books I hold); the other person's side is view only.
+// Owed books in three groups: still held, sold, with others (no action). Either side records:
+// the holder sees Return / Pay, the lender sees Take back / Collect cash.
 function loanGroups(holder, lender) {
   const owed = pos(owedBy(lender, holder)).map(([id, n]) => [id, whereNow(id, n, holder, lender)]);
   const held = Object.fromEntries(owed.map(([id, w]) => [id, w.held]));
@@ -108,9 +108,9 @@ function loanGroups(holder, lender) {
   const btn = (act, label) => `<button class="btn soft" data-act="${act}">${label}</button>`;
   return [
     count(held) && `<h2>${iHold ? `${P}'s books with you` : `Your books with ${P}`} · ${count(held)}</h2>${bookList(held)}
-      ${iHold ? `<div class="acts">${btn("return", "Return")}</div>` : ""}`,
+      <div class="acts">${iHold ? btn("return", "Return") : btn("takeback", "Take back")}</div>`,
     count(sold) && `<h2>${iHold ? "Sold · cash to pay" : `Sold by ${P} · cash to collect`} · ${rs(value(sold))}</h2>${bookList(sold)}
-      ${iHold ? `<div class="acts">${btn("pay", "Pay")}</div>` : ""}`,
+      <div class="acts">${iHold ? btn("pay", "Pay") : btn("collect", "Collect cash")}</div>`,
     on.length && `<h2>With others</h2><ul class="list">${on.map(([id, c, k]) => greyRow(id, k, `With ${who(c)} · ${rs(k * B(id).price)}`)).join("")}</ul>`,
   ].filter(Boolean).join("");
 }
@@ -182,24 +182,30 @@ function owes(p) {
   return s.join("<br>") || "All clear";
 }
 
+// A holder's stock: piles in hand, books at the Center, cash in hand from sold books still owed to others
+// (own books' money isn't tracked). Shown on My stock and on a person's stock tab.
+function stockHtml(h) {
+  const mine = Object.entries(S().hold[h] || {}).filter(([, o]) => nz(o).length).sort(pileOrder(h));
+  const cash = PEOPLE.map((_, p) => p).filter(p => p != h).map(p => [p, soldOf(h, p)]).filter(([, o]) => count(o));
+  const atCenter = pile(CENTER, h);
+  const row = (p, o) => `<span class="avatar">${PEOPLE[p][0]}</span><div class="info"><div class="name">For ${p == me ? "you" : PEOPLE[p]}</div><div class="sub">${books(o)}</div></div><div class="end"><strong class="num">${rs(value(o))}</strong></div>`;
+  return `<p class="owe">Books in hand · ${mine.reduce((t, [, o]) => t + count(o), 0)}</p>
+    ${mine.map(([src, o]) => `<h2>${pileName(h, +src)} · ${nb(count(o))}</h2>${bookList(o)}`).join("") || `<p class="empty">None</p>`}
+    ${count(atCenter) ? `<p class="owe">At Chaitanya Center · ${count(atCenter)}</p>${bookList(atCenter)}` : ""}
+    <p class="owe">Cash in hand to pay others · ${rs(cash.reduce((t, [, o]) => t + value(o), 0))}</p>
+    <ul class="list">${cash.map(([p, o]) => h == me ? `<li><button class="row" data-person="${p}">${row(p, o)}</button></li>` : `<li class="row">${row(p, o)}</li>`).join("") || `<li class="empty">None</li>`}</ul>`;
+}
+const between = p => count(owedBy(p, me)) || count(owedBy(me, p)); // anything pending between me and p
+
 const VIEWS = {
   me() {
-    const mine = Object.entries(S().hold[me] || {}).filter(([, o]) => nz(o).length).sort(pileOrder(me));
-    // Cash to pay others: money from books I gave out that I still owe someone for (own books' money isn't tracked).
-    const cash = others().map(p => [p, soldOf(me, p)]).filter(([, o]) => count(o));
     const iOwe = people().reduce((t, p) => t + value(owedBy(p, me)), 0);
-    const atCenter = pile(CENTER, me);
     const owed = people().reduce((t, p) => t + value(owedBy(me, p)), 0);
     return {
       html: `<div class="top"><h1>My stock</h1><button class="btn soft reset" data-act="reset">Reset to 0</button><button class="round" data-act="who" aria-label="Switch person (mock)">${PEOPLE[me][0]}</button></div>
         <div class="two"><button class="tile" data-tab="people"><span class="muted">Need to pay</span><strong class="num due">${rs(iOwe)}</strong></button>
         <button class="tile" data-tab="people"><span class="muted">Need to get</span><strong class="num">${rs(owed)}</strong></button></div>
-        <p class="owe">Books in hand · ${mine.reduce((t, [, o]) => t + count(o), 0)}</p>
-        ${mine.map(([src, o]) => `<h2>${pileName(me, +src)} · ${nb(count(o))}</h2>${bookList(o)}`).join("") || `<p class="empty">None</p>`}
-        ${count(atCenter) ? `<p class="owe">At Chaitanya Center · ${count(atCenter)}</p>${bookList(atCenter)}` : ""}
-        <p class="owe">Cash in hand to pay others ·${rs(cash.reduce((t, [, o]) => t + value(o), 0))}</p>
-        <ul class="list">${cash.map(([p, o]) => `<li><button class="row" data-person="${p}"><span class="avatar">${PEOPLE[p][0]}</span>
-          <div class="info"><div class="name">For ${PEOPLE[p]}</div><div class="sub">${books(o)}</div></div><div class="end"><strong class="num">${rs(value(o))}</strong></div></button></li>`).join("") || `<li class="empty">None</li>`}</ul>`,
+        ${stockHtml(me)}`,
       bar: `<button class="btn soft wide" data-act="out">Sell books</button><button class="btn wide" data-act="add">Buy books</button>`,
     };
   },
@@ -208,15 +214,24 @@ const VIEWS = {
       <span class="avatar${p == CENTER ? " sq" : ""}">${PEOPLE[p][0]}</span><div class="info"><div class="name">${PEOPLE[p]}</div><div class="sub">${owes(p)}</div></div></button></li>`).join("")}</ul>` };
   },
   person() {
-    const P = PEOPLE[person], mine = owedBy(person, me), theirs = owedBy(me, person);
+    const P = PEOPLE[person], mine = owedBy(person, me), theirs = owedBy(me, person), temple = person == TEMPLE;
+    const top = `<div class="top"><button class="round" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>${P}</h1></div>`;
+    // Volunteers: two tabs. Between us settles in place (Return/Pay or Take back/Collect cash), no bar;
+    // their stock tab has Take/Give. The Temple has no stock of its own: one page with Take books.
+    const tabs = temple ? "" : `<div class="seg ptabs" role="group">${[["between", "Between us"], ["stock", `${P}'s stock`]]
+      .map(([k, l]) => `<button data-ptab="${k}" aria-pressed="${ptab == k}">${l}</button>`).join("")}</div>`;
+    if (!temple && ptab == "stock") return {
+      html: top + tabs + stockHtml(person),
+      bar: `<button class="btn soft wide" data-act="take">Take books</button><button class="btn wide" data-act="give">Give books</button>`,
+    };
     return {
-      html: `<div class="top"><button class="round" data-back aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button><h1>${P}</h1></div>
+      html: `${top}${tabs}
         ${count(mine) ? `<p class="owe due">Need to pay ${P} · ${rs(value(mine))}</p>${loanGroups(me, person)}` : ""}
         ${count(theirs) ? `<p class="owe">Need to get from ${P} · ${rs(value(theirs))}</p>${loanGroups(person, me)}` : ""}
         ${count(mine) || count(theirs) ? "" : `<p class="empty">All clear</p>`}
         ${hist(entries.filter(e => (e.from == me && e.to == person) || (e.from == person && e.to == me)
           || (e.kind == "lend" || e.kind == "out") && ((e.src == me && (e.from == person || e.to == person)) || (e.src == person && (e.from == me || e.to == me)))))}`,
-      bar: person == TEMPLE ? `<button class="btn wide" data-act="take">Take books</button>` : `<button class="btn soft wide" data-act="take">Take books</button><button class="btn wide" data-act="give">Give books</button>`,
+      bar: temple ? `<button class="btn wide" data-act="take">Take books</button>` : "",
     };
   },
   center() {
@@ -245,6 +260,8 @@ const ACTS = {
   take: () => [person == CENTER ? "Take from Center" : `Take from ${PEOPLE[person]}`, piles(person), { kind: "lend", from: person, to: me }],
   return: () => [`Return to ${PEOPLE[person]}`, one(heldOf(me, person)), { kind: "return", from: me, to: person }],
   pay: () => [`Pay ${PEOPLE[person]}`, one(soldOf(me, person)), { kind: "pay", from: me, to: person }],
+  takeback: () => [`Take back from ${PEOPLE[person]}`, one(heldOf(person, me)), { kind: "return", from: person, to: me }],
+  collect: () => [`Collect cash from ${PEOPLE[person]}`, one(soldOf(person, me)), { kind: "pay", from: person, to: me }],
   add: () => ["Buy books", one(ALL()), { kind: "add", to: me }, "These are books you already own or bought prepaid. These are NOT books purchased on LOAN."],
   out: () => ["Sell books", piles(me), { kind: "out", from: me }, "Books that are sold to public or lost."],
 };
@@ -319,10 +336,11 @@ function picker(act) {
 }
 
 document.addEventListener("click", e => {
-  const t = e.target.closest("[data-tab],[data-person],[data-back],[data-act]");
+  const t = e.target.closest("[data-tab],[data-person],[data-back],[data-act],[data-ptab]");
   if (!t || t.closest(".modal")) return;
   if (t.dataset.tab) { tab = t.dataset.tab; person = null; }
-  else if (t.dataset.person) person = +t.dataset.person;
+  else if (t.dataset.person) { person = +t.dataset.person; ptab = between(person) ? "between" : "stock"; }
+  else if (t.dataset.ptab) ptab = t.dataset.ptab;
   else if (t.hasAttribute("data-back")) person = null;
   else if (t.dataset.act == "who") {
     const m = modal(`<h3>View as (mock)</h3><ul class="list">${PEOPLE.map((p, i) => i == TEMPLE || i == CENTER ? "" : `<li><button class="row" data-who="${i}"><span class="avatar">${p[0]}</span><div class="info"><div class="name">${p}</div></div></button></li>`).join("")}</ul>`);

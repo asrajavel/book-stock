@@ -361,3 +361,4 @@ body:has(.app.std) { background: var(--bg); }
 .hist > summary::-webkit-details-marker { display: none; }
 .hist > summary h2::after { content: " ▸"; }
 .hist[open] > summary h2::after { content: " ▾"; }
+.ptabs { margin: 0 0 4px; }
